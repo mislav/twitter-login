@@ -32,11 +32,9 @@ describe Twitter::Login do
   end
   
   it "should login with Twitter" do
-    consumer = mock_oauth_consumer('OAuth Consumer')
-    token = mock('Request Token', :authorize_url => 'http://disney.com/oauth', :token => 'abc', :secret => '123')
-    consumer.should_receive(:get_request_token).with(:oauth_callback => 'http://example.org/login').and_return(token)
-    # request.session[:request_token] = token
-    # redirect token.authorize_url
+    request_token = mock('Request Token', :authorize_url => 'http://disney.com/oauth', :token => 'abc', :secret => '123')
+    oauth = mock_oauth('Twitter OAuth', :request_token => request_token)
+    oauth.should_receive(:set_callback_url).with('http://example.org/login')
     
     get('/login', :lint => true)
     response.status.should == 302
@@ -46,21 +44,22 @@ describe Twitter::Login do
   end
   
   it "should authorize with Twitter" do
-    consumer = mock_oauth_consumer('OAuth Consumer', :key => 'con', :secret => 'sumer', :options => {:one=>'two'})
-    request_token = mock('Request Token')
-    OAuth::RequestToken.should_receive(:new).with(consumer, 'abc', '123').and_return(request_token)
-    access_token = mock('Access Token', :token => 'access1', :secret => '42', :consumer => consumer)
-    request_token.should_receive(:get_access_token).with(:oauth_verifier => 'abc').and_return(access_token)
+    consumer = mock('OAuth consumer', :key => 'con', :secret => 'sumer', :options => {:one => 'two'})
+    access_token = mock('Access Token', :token => 'access1', :secret => '42')
+    oauth = mock_oauth('Twitter OAuth', :access_token => access_token, :consumer => consumer)
+    oauth.should_receive(:authorize_from_request).with('abc', '123', 'allrighty')
     
     twitter = mock('Twitter Base')
-    Twitter::Base.should_receive(:new).with(access_token).and_return(twitter)
-    user_credentials = Hashie::Mash.new :screen_name => 'faker',
-      :name => 'Fake Jr.', :profile_image_url => 'http://disney.com/mickey.png',
-      :followers_count => '13', :friends_count => '6', :statuses_count => '52'
-    twitter.should_receive(:verify_credentials).and_return(user_credentials)
+    Twitter::Base.should_receive(:new).with(oauth).and_return(twitter)
+    
+    twitter.should_receive(:verify_credentials).and_return {
+      Hashie::Mash.new :screen_name => 'faker',
+        :name => 'Fake Jr.', :profile_image_url => 'http://disney.com/mickey.png',
+        :followers_count => '13', :friends_count => '6', :statuses_count => '52'
+    }
     
     session_data = {:request_token => ['abc', '123']}
-    get('/login?oauth_verifier=abc', build_session(session_data).update(:lint => true))
+    get('/login?oauth_verifier=allrighty', build_session(session_data).update(:lint => true))
     response.status.should == 302
     response['Location'].should == 'http://example.org/'
     session[:request_token].should be_nil
@@ -104,11 +103,9 @@ describe Twitter::Login do
     [Marshal.dump(obj)].pack('m*')
   end
   
-  def mock_oauth_consumer(*args)
+  def mock_oauth(*args)
     consumer = mock(*args)
-    OAuth::Consumer.should_receive(:new).and_return(consumer)
-    # .with(instance_of(String), instance_of(String),
-    # :site => 'http://twitter.com', :authorize_path => '/oauth/authenticate')
+    Twitter::OAuth.should_receive(:new).and_return(consumer)
     consumer
   end
 end
