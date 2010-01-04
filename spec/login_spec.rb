@@ -21,7 +21,7 @@ describe Twitter::Login do
       
       builder = Rack::Builder.new
       builder.use Rack::Session::Cookie
-      builder.use described_class, :key => 'abc', :secret => '123'
+      builder.use described_class, :consumer_key => 'abc', :secret => '123'
       builder.run main_app
       builder.to_app
     end
@@ -29,6 +29,17 @@ describe Twitter::Login do
   
   before(:each) do
     @request = Rack::MockRequest.new(@app)
+  end
+  
+  it "should expose consumer key/secret globally" do
+    Twitter::Login.consumer_key.should == 'abc'
+    Twitter::Login.secret.should == '123'
+  end
+  
+  it "should ignore normal requests" do
+    get('/', :lint => true)
+    response.status.should == 200
+    response.body.should == 'Hello world'
   end
   
   it "should login with Twitter" do
@@ -44,7 +55,7 @@ describe Twitter::Login do
   end
   
   it "should authorize with Twitter" do
-    consumer = mock('OAuth consumer', :key => 'con', :secret => 'sumer', :options => {:one => 'two'})
+    consumer = mock('OAuth consumer')
     access_token = mock('Access Token', :token => 'access1', :secret => '42')
     oauth = mock_oauth('Twitter OAuth', :access_token => access_token, :consumer => consumer)
     oauth.should_receive(:authorize_from_request).with('abc', '123', 'allrighty')
@@ -64,10 +75,18 @@ describe Twitter::Login do
     response['Location'].should == 'http://example.org/'
     session[:request_token].should be_nil
     session[:access_token].should == ['access1', '42']
-    session[:oauth_consumer].should == ['con', 'sumer', {:one => 'two'}]
+    session[:oauth_consumer].should be_nil
     
     current_user = session[:twitter_user]
     current_user['screen_name'].should == 'faker'
+  end
+  
+  it "should handle denied access" do
+    session_data = {:request_token => ['abc', '123']}
+    get('/login?denied=OMG', build_session(session_data).update(:lint => true))
+    response.status.should == 302
+    response['Location'].should == 'http://example.org/'
+    session[:request_token].should be_nil
   end
   
   protected

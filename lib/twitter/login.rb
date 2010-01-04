@@ -5,11 +5,16 @@ require 'hashie/mash'
 class Twitter::Login
   attr_reader :options
   
+  class << self
+    attr_accessor :consumer_key, :secret
+  end
+  
   DEFAULTS = { :login_path => '/login', :return_to => '/' }
   
   def initialize(app, options)
     @app = app
     @options = DEFAULTS.merge options
+    self.class.consumer_key, self.class.secret = @options[:consumer_key], @options[:secret]
   end
   
   def call(env)
@@ -24,7 +29,7 @@ class Twitter::Login
         end
       elsif request[:denied]
         # user refused to log in with Twitter, so give up
-        redirect_to_return_path(request)
+        handle_denied_access(request)
       else
         # user clicked to login; send them to Twitter
         redirect_to_twitter(request)
@@ -35,13 +40,14 @@ class Twitter::Login
   end
   
   module Helpers
-    def twitter_consumer
-      token = OAuth::AccessToken.new(oauth_consumer, *session[:access_token])
-      Twitter::Base.new token
+    def twitter_client
+      oauth = twitter_oauth
+      oauth.authorize_from_access(*session[:access_token])
+      Twitter::Base.new oauth
     end
     
-    def oauth_consumer
-      OAuth::Consumer.new(*session[:oauth_consumer])
+    def twitter_oauth
+      Twitter::OAuth.new Twitter::Login.consumer_key, Twitter::Login.secret
     end
     
     def twitter_user
@@ -51,7 +57,7 @@ class Twitter::Login
     end
     
     def twitter_logout
-      [:oauth_consumer, :access_token, :twitter_user].each do |key|
+      [:access_token, :twitter_user].each do |key|
         session[key] = nil # work around a Rails 2.3.5 bug
         session.delete key
       end
@@ -106,6 +112,12 @@ class Twitter::Login
     end
   end
   
+  def handle_denied_access(request)
+    request.session[:request_token] = nil # work around a Rails 2.3.5 bug
+    request.session.delete(:request_token)
+    redirect_to_return_path(request)
+  end
+  
   private
   
   # replace the request token in session with access token
@@ -115,7 +127,6 @@ class Twitter::Login
     
     request.session.delete(:request_token)
     request.session[:access_token] = [oauth.access_token.token, oauth.access_token.secret]
-    request.session[:oauth_consumer] = [oauth.consumer.key, oauth.consumer.secret, oauth.consumer.options]
   end
   
   def redirect_to_return_path(request)
@@ -127,7 +138,7 @@ class Twitter::Login
   end
   
   def oauth
-    @oauth ||= Twitter::OAuth.new options[:key], options[:secret], :sign_in => true
+    @oauth ||= Twitter::OAuth.new options[:consumer_key], options[:secret], :sign_in => true
   end
   
   def twitter

@@ -28,17 +28,17 @@ frameworks.
 
     ## Sinatra
     enable :sessions
-    use Twitter::Login, :key => 'CONSUMER KEY', :secret => 'SECRET'
+    use Twitter::Login, :consumer_key => 'KEY', :secret => 'SECRET'
     helpers Twitter::Login::Helpers
     
     ## Rails
     # environment.rb:
-    config.middleware.use Twitter::Login, :key => 'CONSUMER KEY', :secret => 'SECRET'
+    config.middleware.use Twitter::Login, :consumer_key => 'KEY', :secret => 'SECRET'
     
     # application_controller.rb
     include Twitter::Login::Helpers
 
-Fill in the `:key`, `:secret` placeholders with real values. You're done.
+Fill in the `:consumer_key`, `:secret` placeholders with real values. You're done.
 
 
 What it does
@@ -58,7 +58,7 @@ Configuration
 
 Available options for `Twitter::Login` middleware are:
 
-* `:key` -- OAuth consumer key *(required)*
+* `:consumer_key` -- OAuth consumer key *(required)*
 * `:secret` -- OAuth secret *(required)*
 * `:login_path` -- where user goes to login (default: "/login")
 * `:return_to` -- where user goes after login (default: "/")
@@ -72,8 +72,8 @@ The `Twitter::Login::Helpers` module (for Sinatra, Rails) adds these methods to 
 * `twitter_user` (Hashie::Mash) -- Info about authenticated user. Check this object to
   know whether there is a currently logged-in user. Access user data like `twitter_user.screen_name`
 * `twitter_logout` -- Erases info about Twitter login from session, effectively logging-out the Twitter user
-* `twitter_consumer` (Twitter::Base) -- An OAuth consumer client from ["twitter" gem][gem].
-  With it you can query anything on behalf of authenticated user, e.g. `twitter_consumer.friends_timeline`
+* `twitter_client` (Twitter::Base) -- An OAuth consumer client from ["twitter" gem][gem].
+  With it you can query anything on behalf of authenticated user, e.g. `twitter_client.friends_timeline`
 
 [register]: http://twitter.com/apps/new
 [gem]: http://rdoc.info/projects/jnunemaker/twitter
