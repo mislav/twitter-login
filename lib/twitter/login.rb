@@ -100,7 +100,12 @@ class Twitter::Login
     request.session[:twitter_user] = twitter.verify_credentials.to_hash
     
     # pass the request down to the main app
-    response = yield
+    response = begin
+      yield
+    rescue
+      raise unless $!.class.name == 'ActionController::RoutingError'
+      [404]
+    end
     
     # check if the app implemented anything at :login_path
     if response[0].to_i == 404
