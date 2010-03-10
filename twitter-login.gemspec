@@ -1,6 +1,6 @@
 Gem::Specification.new do |gem|
   gem.name    = 'twitter-login'
-  gem.version = '0.2.0'
+  gem.version = '0.2.1'
   gem.date    = Date.today
   
   gem.add_dependency 'twitter', '~> 0.8.0'
