@@ -42,7 +42,7 @@ class Twitter::Login
   module Helpers
     def twitter_client
       oauth = twitter_oauth
-      oauth.authorize_from_access(*session[:access_token])
+      oauth.authorize_from_access(*session[:twitter_access_token])
       Twitter::Base.new oauth
     end
     
@@ -57,7 +57,7 @@ class Twitter::Login
     end
     
     def twitter_logout
-      [:access_token, :twitter_user].each do |key|
+      [:twitter_access_token, :twitter_user].each do |key|
         session[key] = nil # work around a Rails 2.3.5 bug
         session.delete key
       end
@@ -88,7 +88,7 @@ class Twitter::Login
   def redirect_to_twitter(request)
     # create a request token and store its parameter in session
     oauth.set_callback_url(request.url)
-    request.session[:request_token] = [oauth.request_token.token, oauth.request_token.secret]
+    request.session[:twitter_request_token] = [oauth.request_token.token, oauth.request_token.secret]
     # redirect to Twitter authorization page
     redirect oauth.request_token.authorize_url
   end
@@ -118,8 +118,8 @@ class Twitter::Login
   end
   
   def handle_denied_access(request)
-    request.session[:request_token] = nil # work around a Rails 2.3.5 bug
-    request.session.delete(:request_token)
+    request.session[:twitter_request_token] = nil # work around a Rails 2.3.5 bug
+    request.session.delete(:twitter_request_token)
     redirect_to_return_path(request)
   end
   
@@ -127,11 +127,11 @@ class Twitter::Login
   
   # replace the request token in session with access token
   def authorize_from_request(request)
-    rtoken, rsecret = request.session[:request_token]
+    rtoken, rsecret = request.session[:twitter_request_token]
     oauth.authorize_from_request(rtoken, rsecret, request[:oauth_verifier])
     
-    request.session.delete(:request_token)
-    request.session[:access_token] = [oauth.access_token.token, oauth.access_token.secret]
+    request.session.delete(:twitter_request_token)
+    request.session[:twitter_access_token] = [oauth.access_token.token, oauth.access_token.secret]
   end
   
   def redirect_to_return_path(request)
