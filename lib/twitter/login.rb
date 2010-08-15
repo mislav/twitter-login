@@ -120,6 +120,7 @@ class Twitter::Login
   def handle_denied_access(request)
     request.session[:twitter_request_token] = nil # work around a Rails 2.3.5 bug
     request.session.delete(:twitter_request_token)
+    request.session[:twitter_error] = 'user_denied'
     redirect_to_return_path(request)
   end
   
