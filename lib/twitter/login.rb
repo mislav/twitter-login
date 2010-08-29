@@ -1,6 +1,10 @@
-require 'twitter'
+require 'oauth'
+require 'yajl'
 require 'rack/request'
 require 'hashie/mash'
+
+module Twitter
+end
 
 class Twitter::Login
   attr_reader :options
@@ -41,13 +45,12 @@ class Twitter::Login
   
   module Helpers
     def twitter_client
-      oauth = twitter_oauth
-      oauth.authorize_from_access(*session[:twitter_access_token])
-      Twitter::Base.new oauth
+      OAuth::AccessToken.new(twitter_oauth, *session[:twitter_access_token])
     end
     
     def twitter_oauth
-      Twitter::OAuth.new Twitter::Login.consumer_key, Twitter::Login.secret
+      OAuth::Consumer.new Twitter::Login.consumer_key, Twitter::Login.secret,
+        :site => 'http://api.twitter.com'
     end
     
     def twitter_user
@@ -87,17 +90,18 @@ class Twitter::Login
   
   def redirect_to_twitter(request)
     # create a request token and store its parameter in session
-    oauth.set_callback_url(request.url)
-    request.session[:twitter_request_token] = [oauth.request_token.token, oauth.request_token.secret]
+    request_token = oauth.get_request_token(:oauth_callback => request.url)
+    request.session[:twitter_request_token] = [request_token.token, request_token.secret]
     # redirect to Twitter authorization page
-    redirect oauth.request_token.authorize_url
+    redirect request_token.authorize_url
   end
   
   def handle_twitter_authorization(request)
-    authorize_from_request(request)
+    access_token = authorize_from_request(request)
+    response = access_token.get('/1/account/verify_credentials.json')
     
     # get and store authenticated user's info from Twitter
-    request.session[:twitter_user] = twitter.verify_credentials.to_hash
+    request.session[:twitter_user] = Yajl::Parser.parse response.body
     
     # pass the request down to the main app
     response = begin
@@ -129,10 +133,12 @@ class Twitter::Login
   # replace the request token in session with access token
   def authorize_from_request(request)
     rtoken, rsecret = request.session[:twitter_request_token]
-    oauth.authorize_from_request(rtoken, rsecret, request[:oauth_verifier])
+    request_token = OAuth::RequestToken.new(oauth, rtoken, rsecret)
+    access_token = request_token.get_access_token(:oauth_verifier => request[:oauth_verifier])
     
     request.session.delete(:twitter_request_token)
-    request.session[:twitter_access_token] = [oauth.access_token.token, oauth.access_token.secret]
+    request.session[:twitter_access_token] = [access_token.token, access_token.secret]
+    return access_token
   end
   
   def redirect_to_return_path(request)
@@ -144,10 +150,9 @@ class Twitter::Login
   end
   
   def oauth
-    @oauth ||= Twitter::OAuth.new options[:consumer_key], options[:secret], :sign_in => true
-  end
-  
-  def twitter
-    Twitter::Base.new oauth
+    @oauth ||= OAuth::Consumer.new(options[:consumer_key], options[:secret],
+      :site => 'http://api.twitter.com',
+      :authorize_path => '/oauth/authenticate'
+    )
   end
 end
