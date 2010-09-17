@@ -10,36 +10,38 @@ class Twitter::Login
   attr_reader :options
   
   class << self
-    attr_accessor :consumer_key, :secret
+    attr_accessor :consumer_key, :secret, :site
   end
   
-  DEFAULTS = { :login_path => '/login', :return_to => '/' }
+  DEFAULTS = {
+    :return_to => '/',
+    :site => 'http://api.twitter.com',
+    :authorize_path => '/oauth/authenticate'
+  }
   
-  def initialize(app, options)
-    @app = app
+  def initialize(options)
     @options = DEFAULTS.merge options
     self.class.consumer_key, self.class.secret = @options[:consumer_key], @options[:secret]
+    self.class.site = @options[:site]
+  end
+  
+  def login_handler(options = {})
+    @options.update options
+    return self
   end
   
   def call(env)
     request = Request.new(env)
-    
-    if request.get? and request.path == options[:login_path]
-      @oauth = nil
-      # detect if Twitter redirected back here
-      if request[:oauth_verifier]
-        handle_twitter_authorization(request) do
-          @app.call(env)
-        end
-      elsif request[:denied]
-        # user refused to log in with Twitter, so give up
-        handle_denied_access(request)
-      else
-        # user clicked to login; send them to Twitter
-        redirect_to_twitter(request)
-      end
+  
+    if request[:oauth_verifier]
+      # user authorized the app
+      handle_twitter_authorization(request)
+    elsif request[:denied]
+      # user refused to log in with Twitter
+      handle_denied_access(request)
     else
-      @app.call(env)
+      # starting the login process; send user to Twitter
+      redirect_to_twitter(request)
     end
   end
   
@@ -50,7 +52,7 @@ class Twitter::Login
     
     def twitter_oauth
       OAuth::Consumer.new Twitter::Login.consumer_key, Twitter::Login.secret,
-        :site => 'http://api.twitter.com'
+        :site => Twitter::Login.site
     end
     
     def twitter_user
@@ -92,36 +94,23 @@ class Twitter::Login
     # create a request token and store its parameter in session
     request_token = oauth.get_request_token(:oauth_callback => request.url)
     request.session[:twitter_request_token] = [request_token.token, request_token.secret]
+    
     # redirect to Twitter authorization page
     redirect request_token.authorize_url
   end
   
   def handle_twitter_authorization(request)
     access_token = authorize_from_request(request)
-    response = access_token.get('/1/account/verify_credentials.json')
     
     # get and store authenticated user's info from Twitter
+    response = access_token.get('/1/account/verify_credentials.json')
     request.session[:twitter_user] = Yajl::Parser.parse response.body
     
-    # pass the request down to the main app
-    response = begin
-      yield
-    rescue
-      raise unless $!.class.name == 'ActionController::RoutingError'
-      [404]
-    end
-    
-    # check if the app implemented anything at :login_path
-    if response[0].to_i == 404
-      # if not, redirect to :return_to path
-      redirect_to_return_path(request)
-    else
-      # use the response from the app without modification
-      response
-    end
+    redirect_to_return_path(request)
   end
   
   def handle_denied_access(request)
+    # cleanup session and set an error identifier
     request.session[:twitter_request_token] = nil # work around a Rails 2.3.5 bug
     request.session.delete(:twitter_request_token)
     request.session[:twitter_error] = 'user_denied'
@@ -134,11 +123,11 @@ class Twitter::Login
   def authorize_from_request(request)
     rtoken, rsecret = request.session[:twitter_request_token]
     request_token = OAuth::RequestToken.new(oauth, rtoken, rsecret)
-    access_token = request_token.get_access_token(:oauth_verifier => request[:oauth_verifier])
     
-    request.session.delete(:twitter_request_token)
-    request.session[:twitter_access_token] = [access_token.token, access_token.secret]
-    return access_token
+    request_token.get_access_token(:oauth_verifier => request[:oauth_verifier]).tap do |access_token|
+      request.session.delete(:twitter_request_token)
+      request.session[:twitter_access_token] = [access_token.token, access_token.secret]
+    end
   end
   
   def redirect_to_return_path(request)
@@ -150,9 +139,7 @@ class Twitter::Login
   end
   
   def oauth
-    @oauth ||= OAuth::Consumer.new(options[:consumer_key], options[:secret],
-      :site => 'http://api.twitter.com',
-      :authorize_path => '/oauth/authenticate'
-    )
+    OAuth::Consumer.new options[:consumer_key], options[:secret],
+      :site => options[:site], :authorize_path => options[:authorize_path]
   end
 end
