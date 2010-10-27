@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |gem|
   gem.name    = 'twitter-login'
-  gem.version = '0.4.0'
+  gem.version = '0.4.1'
   gem.date    = Time.now.strftime('%Y-%m-%d')
   
   gem.add_dependency 'oauth', '~> 0.4.2'
