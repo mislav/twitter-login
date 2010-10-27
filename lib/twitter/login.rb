@@ -104,7 +104,7 @@ class Twitter::Login
     
     # get and store authenticated user's info from Twitter
     response = access_token.get('/1/account/verify_credentials.json')
-    request.session[:twitter_user] = Yajl::Parser.parse response.body
+    request.session[:twitter_user] = user_hash_from_response(response)
     
     redirect_to_return_path(request)
   end
@@ -141,5 +141,15 @@ class Twitter::Login
   def oauth
     OAuth::Consumer.new options[:consumer_key], options[:secret],
       :site => options[:site], :authorize_path => options[:authorize_path]
+  end
+  
+  def user_hash_from_response(api_response)
+    parse_response(api_response).reject { |key, _|
+      key == 'status' or key =~ /^profile_|_color$/
+    }
+  end
+  
+  def parse_response(api_response)
+    Yajl::Parser.parse api_response.body
   end
 end
