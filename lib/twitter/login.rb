@@ -86,6 +86,14 @@ class Twitter::Login
 
       url << path
     end
+    
+    def xhr?
+      !(env['HTTP_X_REQUESTED_WITH'] !~ /XMLHttpRequest/i)
+    end
+    
+    def wants?(mime_type)
+      env['HTTP_ACCEPT'].to_s.include? mime_type
+    end
   end
   
   protected
@@ -96,7 +104,15 @@ class Twitter::Login
     request.session[:twitter_request_token] = [request_token.token, request_token.secret]
     
     # redirect to Twitter authorization page
-    redirect request_token.authorize_url
+    if request.wants? 'application/json'
+      body = %({"authorize_url":"#{request_token.authorize_url}"})
+      ["200", {'Content-type' => 'application/json'}, [body]]
+    elsif request.xhr? or request.wants? 'application/javascript'
+      body = "window.location.assign('#{request_token.authorize_url}')"
+      ["200", {'Content-type' => 'application/javascript'}, [body]]
+    else
+      redirect request_token.authorize_url
+    end
   end
   
   def handle_twitter_authorization(request)
