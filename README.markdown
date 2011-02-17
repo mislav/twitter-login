@@ -3,6 +3,8 @@ Drop-in login functionality for your webapp
 
 Drop this Rack middleware in your web application to enable user logins through Twitter.
 
+Newer versions of "twitter-login" are a Rack endpoint rather than middleware. Check this
+out in the ["master" branch][master].
 
 How to use
 ----------
@@ -68,8 +70,7 @@ The `Twitter::Login::Helpers` module (for Sinatra, Rails) adds these methods to 
 * `twitter_user` (Hashie::Mash) -- Info about authenticated user. Check this object to
   know whether there is a currently logged-in user. Access user data like `twitter_user.screen_name`
 * `twitter_logout` -- Erases info about Twitter login from session, effectively logging-out the Twitter user
-* `twitter_client` (Twitter::Base) -- An OAuth consumer client from ["twitter" gem][gem].
-  With it you can query anything on behalf of authenticated user, e.g. `twitter_client.friends_timeline`
+* `twitter_client` (OAuth::AccessToken) -- A consumer token able to query the API, e.g. `twitter_client.get('/1/path')`
 
 [register]: http://twitter.com/apps/new
-[gem]: http://rdoc.info/projects/jnunemaker/twitter
+[master]: https://github.com/mislav/twitter-login#readme
