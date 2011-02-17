@@ -12,16 +12,10 @@ the <i>"Yes, use Twitter for login"</i> option. You can put anything as <i>"Call
 URL"</i> since the real callback URL is provided dynamically, anyway. Note down your
 OAuth consumer key and secret.
 
-Next, install this library:
-
-    [sudo] gem install twitter-login
-
 You have to require 'twitter/login' in your app. If you're using Bundler:
 
     ## Gemfile
-    clear_sources
-    source 'http://gemcutter.org'
-    gem 'twitter-login', :require_as => 'twitter/login'
+    gem 'twitter-login', '~> 0.3.1', :require => 'twitter/login'
 
 Now configure your app to use the middleware. This might be different across web
 frameworks. For Sinatra this would be:
@@ -34,12 +28,7 @@ frameworks. For Sinatra this would be:
 In Rails:
 
     ## Rails
-    # Gemfile (if using Bundler)
-    gem 'twitter-login', '~> 0.2.1', :require => 'twitter/login'
-    
     # environment.rb:
-    # (config.gem only in case you're not using Bundler)
-    config.gem 'twitter-login', :version => '~> 0.2.1', :lib => 'twitter/login'
     config.middleware.use 'Twitter::Login', :consumer_key => 'KEY', :secret => 'SECRET'
     
     # application_controller.rb
