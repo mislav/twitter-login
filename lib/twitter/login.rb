@@ -87,10 +87,6 @@ class Twitter::Login
       url << path
     end
     
-    def xhr?
-      !(env['HTTP_X_REQUESTED_WITH'] !~ /XMLHttpRequest/i)
-    end
-    
     def wants?(mime_type)
       env['HTTP_ACCEPT'].to_s.include? mime_type
     end
