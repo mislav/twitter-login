@@ -2,17 +2,17 @@
 
 Gem::Specification.new do |gem|
   gem.name    = 'twitter-login'
-  gem.version = '0.4.2'
+  gem.version = '0.4.3'
   gem.date    = Time.now.strftime('%Y-%m-%d')
   
   gem.add_dependency 'oauth', '~> 0.4.2'
   gem.add_dependency 'yajl-ruby', '>= 0.7.7'
   gem.add_dependency 'hashie', '>= 0.2.2'
-  gem.add_development_dependency 'rspec', '~> 1.2.9'
+  gem.add_development_dependency 'rspec', '>= 1.2.9'
   gem.add_development_dependency 'fakeweb', '~> 1.2.8'
   
-  gem.summary = "Rack middleware to provide login functionality through Twitter"
-  gem.description = "Rack middleware for Sinatra, Rails, and other web frameworks that provides user login functionality through Twitter."
+  gem.summary = "Rack endpoint to provide login with Twitter functionality"
+  # gem.description = "Nothing smart yet"
   
   gem.authors  = ['Mislav Marohnić']
   gem.email    = 'mislav.marohnic@gmail.com'
