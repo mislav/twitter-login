@@ -3,6 +3,7 @@ Drop-in login functionality for your webapp
 
 Mount this Rack endpoint in your web application to enable user logins through Twitter.
 
+Check out the sister project, ["facebook-login"][facebook].
 
 How to use
 ----------
@@ -77,5 +78,19 @@ The `Twitter::Login::Helpers` module (for Sinatra, Rails) adds these methods to 
 * `twitter_logout` -- Erases info about Twitter login from session, effectively logging-out the Twitter user
 * `twitter_client` (OAuth::AccessToken) -- A consumer token able to query the API, e.g. `twitter_client.get('/1/path')`
 
+
+Apps that use "twitter-login"
+-----------------------------
+
+* [The Movie App][movieapp] ([source code](https://github.com/mislav/movieapp))
+  * [config/application.rb](https://github.com/mislav/movieapp/blob/b8f6bd9/config/application.rb#L48-49)
+  * [config/routes.rb](https://github.com/mislav/movieapp/blob/b8f6bd9/config/routes.rb#L18-23)
+  * [application_controller.rb](https://github.com/mislav/movieapp/blob/b8f6bd9/app/controllers/application_controller.rb#L4-43)
+  * [sessions_controller.rb](https://github.com/mislav/movieapp/blob/b8f6bd9/app/controllers/sessions_controller.rb#L11-32)
+* [Todas Listas][todo] ([source code](https://github.com/ivana/todofrenzy))
+
 [register]: http://twitter.com/apps/new
 [middleware]: https://github.com/mislav/twitter-login/tree/middleware-0.3#readme
+[movieapp]: http://movi.im/
+[todo]: http://todaslistas.heroku.com/
+[facebook]: https://github.com/mislav/facebook#readme
